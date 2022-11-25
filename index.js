@@ -20,10 +20,10 @@ async function run() {
     const productCollection = client.db('mobileHunterUser').collection('mobileProducts');
     const categoryCollection = client.db('mobileHunterUser').collection('phoneCategory');
     const userCollection = client.db('mobileHunterUser').collection('phoneUser');
+    const bookingCollection = client.db('mobileHunterUser').collection('bookphone');
 
     try {
         app.get('/products', async (req, res) => {
-            console.log('p')
             const query = {};
             const cursor = productCollection.find();
             const products = await cursor.toArray();
@@ -57,6 +57,13 @@ async function run() {
             const user = req.body;
             const result = await userCollection.insertOne(user);
             console.log(result)
+            res.send(result);
+        });
+
+        app.post('/bookingphone', async (req,res) =>{
+            const book = req.body;
+            console.log(book);
+            const result = await bookingCollection.insertOne(book);
             res.send(result);
         })
 
