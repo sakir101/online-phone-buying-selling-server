@@ -65,6 +65,18 @@ async function run() {
             console.log(book);
             const result = await bookingCollection.insertOne(book);
             res.send(result);
+        });
+
+        app.put('/products/:id', async(req,res)=>{
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    booked: 'booked'
+                }
+            }
+            const result = await productCollection.updateOne(filter, updatedDoc);
+            res.send(result);
         })
 
     }
