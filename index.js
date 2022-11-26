@@ -27,7 +27,7 @@ async function run() {
             const query = {};
             const cursor = productCollection.find();
             const products = await cursor.toArray();
-            const productsFilter = products.filter(product => product.booked === 'none')
+            const productsFilter = products.filter(product => product.payment === 'none')
             res.send(productsFilter);
         });
 
@@ -60,23 +60,25 @@ async function run() {
             res.send(result);
         });
 
-        app.post('/bookingphone', async (req,res) =>{
+        app.post('/bookingphone', async (req, res) => {
             const book = req.body;
-            console.log(book);
             const result = await bookingCollection.insertOne(book);
             res.send(result);
         });
 
-        app.put('/products/:id', async(req,res)=>{
+
+        app.get('/orders', async (req, res) => {
+            const cursor = bookingCollection.find({ buyerEmail: { $in: [req.query.email] } });
+            const orders = await cursor.toArray();
+            console.log(orders)
+            res.send(orders)
+        });
+
+        app.get('/payment/:id', async(req,res)=>{
             const id = req.params.id;
-            const filter = { _id: ObjectId(id) }
-            const updatedDoc = {
-                $set: {
-                    booked: 'booked'
-                }
-            }
-            const result = await productCollection.updateOne(filter, updatedDoc);
-            res.send(result);
+            const query = { _id: ObjectId(id) };
+            const item = await productCollection.findOne(query);
+            res.send(item);
         })
 
     }
