@@ -23,6 +23,7 @@ async function run() {
     const userCollection = client.db('mobileHunterUser').collection('phoneUser');
     const bookingCollection = client.db('mobileHunterUser').collection('bookphone');
     const paymentsCollection = client.db('mobileHunterUser').collection('payPrice');
+    const reportingCollection = client.db('mobileHunterUser').collection('reportPhone');
 
     try {
         app.get('/products', async (req, res) => {
@@ -206,8 +207,40 @@ async function run() {
             const query = { _id: ObjectId(id) };
             const result = await userCollection.deleteOne(query);
             res.send(result);
-        })
+        });
 
+        app.get('/allbuyers', async (req, res) => {
+            const cursor = userCollection.find({ role: { $in: ["buyer"] } });
+            const buyers = await cursor.toArray();
+            res.send(buyers)
+        });
+
+        app.post('/reportingphone', async (req, res) => {
+            const report = req.body;
+            const result = await reportingCollection.insertOne(report);
+            res.send(result);
+        });
+
+        app.get('/allreports', async(req,res)=>{
+            const query = {};
+            const cursor = reportingCollection.find();
+            const reports = await cursor.toArray();
+            res.send(reports);
+        });
+
+        app.delete('/deleteproduct/:id', async(req,res)=>{
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await productCollection.deleteOne(query);
+            res.send(result);
+        });
+
+        app.delete('/deletereport/:id', async(req,res)=>{
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await reportingCollection.deleteOne(query);
+            res.send(result);
+        })
 
 
     }
