@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const port = process.env.PORT || 5000;
@@ -17,6 +18,25 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@clu
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+function verifyJWT(req, res, next) {
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send('unauthorized access');
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({ message: 'forbidden access' })
+        }
+        req.decoded = decoded;
+        next();
+    })
+
+}
+
 async function run() {
     const productCollection = client.db('mobileHunterUser').collection('mobileProducts');
     const categoryCollection = client.db('mobileHunterUser').collection('phoneCategory');
@@ -24,8 +44,21 @@ async function run() {
     const bookingCollection = client.db('mobileHunterUser').collection('bookphone');
     const paymentsCollection = client.db('mobileHunterUser').collection('payPrice');
     const reportingCollection = client.db('mobileHunterUser').collection('reportPhone');
+    const advertiseCollection = client.db('mobileHunterUser').collection('advertiseProduct');
 
     try {
+
+        app.get('/jwt', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            if (user) {
+                const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' })
+                return res.send({ accessToken: token });
+            }
+            res.status(403).send({ accessToken: '' })
+        });
+
         app.get('/products', async (req, res) => {
             const query = {};
             const cursor = productCollection.find();
@@ -167,7 +200,7 @@ async function run() {
             const email = req.params.email;
 
             const update = req.body;
-            const query = {email};
+            const query = { email };
             const updatedDocs = {
                 $set: {
                     verify: update.verify
@@ -183,7 +216,7 @@ async function run() {
             const sellerEmail = req.params.email;
 
             const update = req.body;
-            const query = {sellerEmail};
+            const query = { sellerEmail };
             const updatedDocs = {
                 $set: {
                     verify: update.verify
@@ -195,14 +228,14 @@ async function run() {
             res.send(result);
         });
 
-        app.get('/checkverify/:email', async(req,res)=>{
+        app.get('/checkverify/:email', async (req, res) => {
             const email = req.params.email;
             const query = { email }
             const cursor = await userCollection.findOne(query);
             res.send(cursor);
         });
 
-        app.delete('/deleteuser/:id', async(req,res)=>{
+        app.delete('/deleteuser/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await userCollection.deleteOne(query);
@@ -221,26 +254,54 @@ async function run() {
             res.send(result);
         });
 
-        app.get('/allreports', async(req,res)=>{
+        app.get('/allreports', async (req, res) => {
             const query = {};
             const cursor = reportingCollection.find();
             const reports = await cursor.toArray();
             res.send(reports);
         });
 
-        app.delete('/deleteproduct/:id', async(req,res)=>{
+        app.delete('/deleteproduct/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await productCollection.deleteOne(query);
             res.send(result);
         });
 
-        app.delete('/deletereport/:id', async(req,res)=>{
+        app.delete('/deletereport/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await reportingCollection.deleteOne(query);
             res.send(result);
-        })
+        });
+
+        app.post('/addadvertise/:id', async (req, res) => {
+            const advertise = req.body;
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await advertiseCollection.insertOne(advertise);
+            const updatedDocs = {
+                $set: {
+                    advertise: "advertised"
+                }
+            }
+            const updateProduct = await productCollection.updateOne(query, updatedDocs)
+            res.send(result);
+        });
+
+        app.get('/advertiseProduct', async(req,res)=>{
+            const query = {};
+            const cursor = advertiseCollection.find();
+            const advertiseProduct = await cursor.toArray();
+            res.send(advertiseProduct);
+        });
+
+        app.get('/orderProduct/:id', async(req,res)=>{
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await productCollection.findOne(query)
+            res.send(result)
+        });
 
 
     }
