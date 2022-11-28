@@ -328,7 +328,7 @@ async function run() {
             res.send(result);
         });
 
-        app.get('/advertiseProduct',verifyJWT, async(req,res)=>{
+        app.get('/advertiseProduct', async(req,res)=>{
             const query = {};
             const cursor = advertiseCollection.find();
             const advertiseProduct = await cursor.toArray();
